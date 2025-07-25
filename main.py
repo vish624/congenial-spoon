@@ -26,3 +26,18 @@ SHAPES = [
   [[1, 1, 0], [0, 1, 1]],  
 
 ]
+
+# Colors
+COLORS = [(255, 0, 0), (0, 255, 0), (0, 0, 255),
+          (255, 255, 0), (0, 255, 255), (255, 0, 255), (128, 128, 128)]
+# Tetromino class
+class Tetromino:
+    def _init_(self):
+        self.shape = random.choice(SHAPES)
+        self.color = random.choice(COLORS)
+        self.x = COLS // 2 - len(self.shape[0])  // 2
+        self.y = 0
+
+
+
+
