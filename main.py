@@ -15,3 +15,14 @@ BLOCK_SIZE = WIDTH // COLS
 grid = [[(0,0,0) for _ in range(COLS)] for _ in range(ROWS)]
 
 # Shapes for the tetris game
+
+SHAPES = [
+  [[1,1,1,1]],
+  [[1,1], [1,1]],
+  [[0, 1, 0], [1, 1, 1]],             
+  [[1, 0, 0], [1, 1, 1]],             
+  [[0, 0, 1], [1, 1, 1]],             
+  [[0, 1, 1], [1, 1, 0]],            
+  [[1, 1, 0], [0, 1, 1]],  
+
+]
