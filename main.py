@@ -3,7 +3,8 @@ import random
 
 # initialise the window for the game
 pygame.init()
-WIDTH, HEIGHT = 400, 60
+WIDTH= 400 
+HEIGHT = 60
 WIN = pygame.display.set_mode(WIDTH,HEIGHT)
 pygame.display.set_caption("Crazy Tetris")
 clock = pygame.time.clock()
@@ -37,7 +38,5 @@ class Tetromino:
         self.color = random.choice(COLORS)
         self.x = COLS // 2 - len(self.shape[0])  // 2
         self.y = 0
-
-
-
+        
 
