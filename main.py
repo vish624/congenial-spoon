@@ -2,7 +2,6 @@
 
 import pdb
 
-import constants
 import pygame
 import math
 import copy
@@ -82,9 +81,9 @@ class Block(object):
         # The initial shape (convert all to Rect objects)
         self.shape = []
         for sh in shape:
-            bx = sh[0]*constants.BWIDTH + x
-            by = sh[1]*constants.BHEIGHT + y
-            block = pygame.Rect(bx,by,constants.BWIDTH,constants.BHEIGHT)
+            bx = sh[0]* BWIDTH + x
+            by = sh[1]* BHEIGHT + y
+            block = pygame.Rect(bx,by, BWIDTH, BHEIGHT)
             self.shape.append(block)     
         # Setup the rotation attribute
         self.rotate_en = rotate_en
@@ -107,7 +106,7 @@ class Block(object):
         """
         for bl in self.shape:
             pygame.draw.rect(self.screen,self.color,bl)
-            pygame.draw.rect(self.screen,constants.BLACK,bl,constants.MESH_WIDTH)
+            pygame.draw.rect(self.screen, BLACK,bl, MESH_WIDTH)
         
     def get_rotated(self,x,y):
         """
@@ -154,7 +153,7 @@ class Block(object):
                 # Block is above the y, move down and add it to the list of active shape
                 # blocks.
                 new_shape.append(tmp_shape)  
-                tmp_shape.move_ip(0,constants.BHEIGHT)
+                tmp_shape.move_ip(0, BHEIGHT)
             elif tmp_shape.y > y:
                 # Block is below the y, add it to the list. The block doesn't need to be moved because
                 # the removed line is above it.
@@ -185,11 +184,11 @@ class Block(object):
         for bl in self.shape:
             # Get old coordinates and compute new x,y coordinates. 
             # All rotation calculates are done in the original coordinates.
-            origX = (bl.x - self.x)/constants.BWIDTH
-            origY = (bl.y - self.y)/constants.BHEIGHT
+            origX = (bl.x - self.x)/ BWIDTH
+            origY = (bl.y - self.y)/ BHEIGHT
             rx,ry = self.get_rotated(origX,origY)
-            newX = rx*constants.BWIDTH  + self.x + self.diffx
-            newY = ry*constants.BHEIGHT + self.y + self.diffy
+            newX = rx* BWIDTH  + self.x + self.diffx
+            newY = ry* BHEIGHT + self.y + self.diffy
             # Compute the relative move
             newPosX = newX - bl.x
             newPosY = newY - bl.y
@@ -254,29 +253,29 @@ class Tetris(object):
             - by - number of blocks in y
         """
         # Compute the resolution of the play board based on the required number of blocks.
-        self.resx = bx*constants.BWIDTH+2*constants.BOARD_HEIGHT+constants.BOARD_MARGIN
-        self.resy = by*constants.BHEIGHT+2*constants.BOARD_HEIGHT+constants.BOARD_MARGIN
+        self.resx = bx* BWIDTH+2* BOARD_HEIGHT+ BOARD_MARGIN
+        self.resy = by* BHEIGHT+2* BOARD_HEIGHT+ BOARD_MARGIN
         # Prepare the pygame board objects (white lines)
-        self.board_up    = pygame.Rect(0,constants.BOARD_UP_MARGIN,self.resx,constants.BOARD_HEIGHT)
-        self.board_down  = pygame.Rect(0,self.resy-constants.BOARD_HEIGHT,self.resx,constants.BOARD_HEIGHT)
-        self.board_left  = pygame.Rect(0,constants.BOARD_UP_MARGIN,constants.BOARD_HEIGHT,self.resy)
-        self.board_right = pygame.Rect(self.resx-constants.BOARD_HEIGHT,constants.BOARD_UP_MARGIN,constants.BOARD_HEIGHT,self.resy)
+        self.board_up    = pygame.Rect(0, BOARD_UP_MARGIN,self.resx, BOARD_HEIGHT)
+        self.board_down  = pygame.Rect(0,self.resy- BOARD_HEIGHT,self.resx, BOARD_HEIGHT)
+        self.board_left  = pygame.Rect(0, BOARD_UP_MARGIN, BOARD_HEIGHT,self.resy)
+        self.board_right = pygame.Rect(self.resx- BOARD_HEIGHT, BOARD_UP_MARGIN, BOARD_HEIGHT,self.resy)
         # List of used blocks
         self.blk_list    = []
         # Compute start indexes for tetris blocks
         self.start_x = math.ceil(self.resx/2.0)
-        self.start_y = constants.BOARD_UP_MARGIN + constants.BOARD_HEIGHT + constants.BOARD_MARGIN
+        self.start_y =  BOARD_UP_MARGIN +  BOARD_HEIGHT +  BOARD_MARGIN
         # Blocka data (shapes and colors). The shape is encoded in the list of [X,Y] points. Each point
         # represents the relative position. The true/false value is used for the configuration of rotation where
         # False means no rotate and True allows the rotation.
         self.block_data = (
-            ([[0,0],[1,0],[2,0],[3,0]],constants.RED,True),     # I block 
-            ([[0,0],[1,0],[0,1],[-1,1]],constants.GREEN,True),  # S block 
-            ([[0,0],[1,0],[2,0],[2,1]],constants.BLUE,True),    # J block
-            ([[0,0],[0,1],[1,0],[1,1]],constants.ORANGE,False), # O block
-            ([[-1,0],[0,0],[0,1],[1,1]],constants.GOLD,True),   # Z block
-            ([[0,0],[1,0],[2,0],[1,1]],constants.PURPLE,True),  # T block
-            ([[0,0],[1,0],[2,0],[0,1]],constants.CYAN,True),    # J block
+            ([[0,0],[1,0],[2,0],[3,0]], RED,True),     # I block 
+            ([[0,0],[1,0],[0,1],[-1,1]], GREEN,True),  # S block 
+            ([[0,0],[1,0],[2,0],[2,1]], BLUE,True),    # J block
+            ([[0,0],[0,1],[1,0],[1,1]], ORANGE,False), # O block
+            ([[-1,0],[0,0],[0,1],[1,1]], GOLD,True),   # Z block
+            ([[0,0],[1,0],[2,0],[1,1]], PURPLE,True),  # T block
+            ([[0,0],[1,0],[2,0],[0,1]], CYAN,True),    # J block
         )
         # Compute the number of blocks. When the number of blocks is even, we can use it directly but 
         # we have to decrese the number of blocks in line by one when the number is odd (because of the used margin).
@@ -287,7 +286,7 @@ class Tetris(object):
         # Remember the current speed 
         self.speed = 1
         # The score level threshold
-        self.score_level = constants.SCORE_LEVEL
+        self.score_level =  SCORE_LEVEL
 
     def apply_action(self):
         """
@@ -302,19 +301,19 @@ class Tetris(object):
             # Detect the key evevents for game control.
             if ev.type == pygame.KEYDOWN:
                 if ev.key == pygame.K_DOWN:
-                    self.active_block.move(0,constants.BHEIGHT)
+                    self.active_block.move(0, BHEIGHT)
                 if ev.key == pygame.K_LEFT:
-                    self.active_block.move(-constants.BWIDTH,0)
+                    self.active_block.move(- BWIDTH,0)
                 if ev.key == pygame.K_RIGHT:
-                    self.active_block.move(constants.BWIDTH,0)
+                    self.active_block.move( BWIDTH,0)
                 if ev.key == pygame.K_SPACE:
                     self.active_block.rotate()
                 if ev.key == pygame.K_p:
                     self.pause()
        
             # Detect if the movement event was fired by the timer.
-            if ev.type == constants.TIMER_MOVE_EVENT:
-                self.active_block.move(0,constants.BHEIGHT)
+            if ev.type ==  TIMER_MOVE_EVENT:
+                self.active_block.move(0, BHEIGHT)
        
     def pause(self):
         """
@@ -334,15 +333,15 @@ class Tetris(object):
         Setup the move timer to the 
         """
         # Setup the time to fire the move event. Minimal allowed value is 1
-        speed = math.floor(constants.MOVE_TICK / self.speed)
+        speed = math.floor( MOVE_TICK / self.speed)
         speed = max(1,speed)
-        pygame.time.set_timer(constants.TIMER_MOVE_EVENT,speed)
+        pygame.time.set_timer( TIMER_MOVE_EVENT,speed)
  
     def run(self):
         # Initialize the game (pygame, fonts)
         pygame.init()
         pygame.font.init()
-        self.myfont = pygame.font.SysFont(pygame.font.get_default_font(),constants.FONT_SIZE)
+        self.myfont = pygame.font.SysFont(pygame.font.get_default_font(), FONT_SIZE)
         self.screen = pygame.display.set_mode((self.resx,self.resy))
         pygame.display.set_caption("Tetris")
         # Setup the time to fire the move event every given time
@@ -373,7 +372,7 @@ class Tetris(object):
         Print the current state line
         """
         string = ["SCORE: {0}   SPEED: {1}x".format(self.score,self.speed)]
-        self.print_text(string,constants.POINT_MARGIN,constants.POINT_MARGIN)        
+        self.print_text(string, POINT_MARGIN, POINT_MARGIN)        
 
     def print_game_over(self):
         """
@@ -451,7 +450,7 @@ class Tetris(object):
         # After that, detect the the insertion of new block. The block new block is inserted if we reached the boarder
         # or we cannot move down.
         self.active_block.backup()
-        self.active_block.move(0,constants.BHEIGHT)
+        self.active_block.move(0, BHEIGHT)
         can_move_down = not self.block_colides()  
         self.active_block.restore()
         # We end the game if we are on the respawn and we cannot move --> bang!
@@ -482,11 +481,11 @@ class Tetris(object):
             # Ok, the full line is detected!     
             self.remove_line(tmp_y)
             # Update the score.
-            self.score += self.blocks_in_line * constants.POINT_VALUE 
+            self.score += self.blocks_in_line *  POINT_VALUE 
             # Check if we need to speed up the game. If yes, change control variables
             if self.score > self.score_level:
-                self.score_level *= constants.SCORE_LEVEL_RATIO
-                self.speed       *= constants.GAME_SPEEDUP_RATIO
+                self.score_level *= SCORE_LEVEL_RATIO
+                self.speed       *= GAME_SPEEDUP_RATIO
                 # Change the game speed
                 self.set_move_timer()
 
@@ -523,10 +522,10 @@ class Tetris(object):
         """
         Draw the white board.
         """
-        pygame.draw.rect(self.screen,constants.WHITE,self.board_up)
-        pygame.draw.rect(self.screen,constants.WHITE,self.board_down)
-        pygame.draw.rect(self.screen,constants.WHITE,self.board_left)
-        pygame.draw.rect(self.screen,constants.WHITE,self.board_right)
+        pygame.draw.rect(self.screen, WHITE,self.board_up)
+        pygame.draw.rect(self.screen, WHITE,self.board_down)
+        pygame.draw.rect(self.screen, WHITE,self.board_left)
+        pygame.draw.rect(self.screen, WHITE,self.board_right)
         # Update the score         
         self.print_status_line()
 
@@ -548,7 +547,7 @@ class Tetris(object):
         """
         # Clean the screen, draw the board and draw
         # all tetris blocks
-        self.screen.fill(constants.BLACK)
+        self.screen.fill( BLACK)
         self.draw_board()
         for blk in self.blk_list:
             blk.draw()
