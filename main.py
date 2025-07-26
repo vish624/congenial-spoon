@@ -43,9 +43,9 @@ class Tetromino:
 
     def drop(self):
         self.y += 1
-        if not self.valid()
-        self.y -=1
-        self.lock()
+        if not self.valid():
+          self.y -=1
+          self.lock()
     def rotate(self):
         self.shape = [list(row) for row in zip(*self.shape[::-1])]
         if not self.valid():
@@ -88,6 +88,33 @@ def draw(win, piece):
     pygame.display.update()
 
 # Game loop
+
+def main():
+    run = True
+    piece = Tetromino()
+    drop_time = 0
+    while run:
+        clock.tick(60)
+        drop_time += 1
+        if drop_time > 30:
+            piece.drop()
+            drop_time = 0
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    piece.move(-1)
+                elif event.key == pygame.K_RIGHT:
+                    piece.move(1)
+                elif event.key == pygame.K_DOWN:
+                    piece.drop()
+                elif event.key == pygame.K_UP:
+                    piece.rotate()
+        draw(win, piece)
+    pygame.quit()
+
+main()
 
 
 
