@@ -3,8 +3,8 @@ import random
 
 # initialise the window for the game
 pygame.init()
-WIDTH= 400 
-HEIGHT = 60
+WIDTH= 300 
+HEIGHT = 600
 WIN = pygame.display.set_mode(WIDTH,HEIGHT)
 pygame.display.set_caption("Crazy Tetris")
 clock = pygame.time.clock()
@@ -38,5 +38,58 @@ class Tetromino:
         self.color = random.choice(COLORS)
         self.x = COLS // 2 - len(self.shape[0])  // 2
         self.y = 0
+    def move(self, dx):
+        self.x -= dx   
+
+    def drop(self):
+        self.y += 1
+        if not self.valid()
+        self.y -=1
+        self.lock()
+    def rotate(self):
+        self.shape = [list(row) for row in zip(*self.shape[::-1])]
+        if not self.valid():
+            self.shape = [list(row) for row in zip(*self.shape)][::-1]
+
+    def valid(self):
+        for i, row in enumerate(self.shape):
+            for j, cell in enumerate(row):
+                if cell:
+                    nx, ny = self.x + j, self.y + i
+                    if nx < 0 or nx >= COLS or ny >= ROWS or (ny >= 0 and grid[ny][nx] != (0, 0, 0)):
+                        return False
+        return True
+
+    def lock(self):
+        for i, row in enumerate(self.shape):
+            for j, cell in enumerate(row):
+                if cell:
+                    grid[self.y + i][self.x + j] = self.color
+        clear_rows()
+        return True
+
+def clear_rows():
+    global grid
+    grid = [row for row in grid if (0, 0, 0) in row]
+    while len(grid) < ROWS:
+        grid.insert(0, [(0, 0, 0) for _ in range(COLS)])
+
+def draw(win, piece):
+    win.fill((0, 0, 0))
+    for y in range(ROWS):
+        for x in range(COLS):
+            color = grid[y][x]
+            if color != (0, 0, 0):
+                pygame.draw.rect(win, color, (x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
+    for i, row in enumerate(piece.shape):
+        for j, cell in enumerate(row):
+            if cell:
+                pygame.draw.rect(win, piece.color, ((piece.x + j) * BLOCK_SIZE, (piece.y + i) * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
+    pygame.display.update()
+
+# Game loop
+
+
+
         
 
