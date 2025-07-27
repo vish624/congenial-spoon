@@ -12,6 +12,19 @@ import random
 
 from pygame.locals import *
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Configuration of building shape block
 # Width of the shape block
 BWIDTH     = 20
@@ -329,7 +342,7 @@ class Tetris(object):
                     return
        
     def set_move_timer(self):
-        """
+        """         
         Setup the move timer to the 
         """
         # Setup the time to fire the move event. Minimal allowed value is 1
@@ -557,4 +570,6 @@ class Tetris(object):
 if __name__ == "__main__":
     Tetris(16,30).run()
 
-#Special add to try pull requests
+
+
+
