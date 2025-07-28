@@ -663,6 +663,11 @@ class Tetris(object):
         # Restore the configuration if any collision was detected
         if down_board or any_border or block_any:
             self.active_block.restore()
+            # If the collision was due to moving down, lock the block and spawn a new one
+            if down_board or (block_any and self.active_block.diffy > 0):
+                self.new_block = True
+                self.detect_line()
+                return
         # So far so good, sample the previous state and try to move down (to detect the colision with other block). 
         # After that, detect the the insertion of new block. The block new block is inserted if we reached the boarder
         # or we cannot move down.
@@ -680,6 +685,7 @@ class Tetris(object):
             # Detect the filled line and possibly remove the line from the 
             # screen.
             self.detect_line()   
+            return
  
     def detect_line(self):
         """
