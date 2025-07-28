@@ -52,6 +52,20 @@ PURPLE   = (128,0,128)
 CYAN     = (0,255,255) 
 BLACK    = (0,0,0)
 
+# Additional colors for enhanced visuals
+DARK_GRAY    = (40,40,40)
+LIGHT_GRAY   = (100,100,100)
+DARK_BLUE    = (0,0,100)
+LIGHT_BLUE   = (100,150,255)
+DARK_GREEN   = (0,100,0)
+LIGHT_GREEN  = (100,255,100)
+DARK_RED     = (100,0,0)
+LIGHT_RED    = (255,100,100)
+YELLOW       = (255,255,0)
+PINK         = (255,100,255)
+TEAL         = (0,128,128)
+BROWN        = (139,69,19)
+
 # Timing constraints
 # Time for the generation of TIME_MOVE_EVENT (ms)
 MOVE_TICK          = 1000
@@ -72,6 +86,20 @@ POINT_MARGIN      = 10
 
 # Font size for all strings (score, pause, game over)
 FONT_SIZE           = 25
+
+# Environmental effects configuration
+# Wind effect settings
+WIND_CHANCE         = 0.08 # 8% chance per frame for wind to affect piece (reduced from 10%)
+WIND_STRENGTH       = 1    # Number of blocks wind can push
+WIND_DIRECTION      = 1    # 1 for right, -1 for left (randomly chosen)
+
+# Earthquake effect settings  
+EARTHQUAKE_CHANCE   = 0.05 # 5% chance per frame for earthquake to affect piece
+EARTHQUAKE_ROTATION = 90   # Degrees to rotate during earthquake
+
+# Environmental effects timer
+ENVIRONMENT_TICK    = 2000  # Check for environmental effects every 2000ms (2 seconds)
+TIMER_ENVIRONMENT_EVENT = USEREVENT+2
 
 class Block(object):
     """
@@ -268,6 +296,10 @@ class Tetris(object):
         # Compute the resolution of the play board based on the required number of blocks.
         self.resx = bx* BWIDTH+2* BOARD_HEIGHT+ BOARD_MARGIN
         self.resy = by* BHEIGHT+2* BOARD_HEIGHT+ BOARD_MARGIN
+        
+        # Add space for next shape preview
+        self.preview_width = 200  # Width for preview area
+        self.total_resx = self.resx + self.preview_width  # Total screen width including preview
         # Prepare the pygame board objects (white lines)
         self.board_up    = pygame.Rect(0, BOARD_UP_MARGIN,self.resx, BOARD_HEIGHT)
         self.board_down  = pygame.Rect(0,self.resy- BOARD_HEIGHT,self.resx, BOARD_HEIGHT)
@@ -300,6 +332,19 @@ class Tetris(object):
         self.speed = 1
         # The score level threshold
         self.score_level =  SCORE_LEVEL
+        
+        # Environmental effects settings
+        self.wind_active = False
+        self.wind_direction = 1  # 1 for right, -1 for left
+        self.earthquake_active = False
+        self.environment_timer = 0
+        
+        # Debug tracking for stuck blocks
+        self.stuck_block_count = 0
+        
+        # Next shape preview
+        self.next_shape_index = random.randint(0, len(self.block_data)-1)
+        self.next_shape_block = None
 
     def apply_action(self):
         """
@@ -319,7 +364,7 @@ class Tetris(object):
                     self.active_block.move(- BWIDTH,0)
                 if ev.key == pygame.K_RIGHT:
                     self.active_block.move( BWIDTH,0)
-                if ev.key == pygame.K_SPACE:
+                if ev.key == pygame.K_UP or ev.key == pygame.K_SPACE:
                     self.active_block.rotate()
                 if ev.key == pygame.K_p:
                     self.pause()
@@ -327,6 +372,10 @@ class Tetris(object):
             # Detect if the movement event was fired by the timer.
             if ev.type ==  TIMER_MOVE_EVENT:
                 self.active_block.move(0, BHEIGHT)
+                
+            # Detect if the environment effects event was fired by the timer.
+            if ev.type == TIMER_ENVIRONMENT_EVENT:
+                self.update_environmental_effects()
        
     def pause(self):
         """
@@ -349,16 +398,146 @@ class Tetris(object):
         speed = math.floor( MOVE_TICK / self.speed)
         speed = max(1,speed)
         pygame.time.set_timer( TIMER_MOVE_EVENT,speed)
+        
+    def set_environment_timer(self):
+        """
+        Setup the environment effects timer
+        """
+        pygame.time.set_timer(TIMER_ENVIRONMENT_EVENT, ENVIRONMENT_TICK)
+        
+    def apply_wind_effect(self):
+        """
+        Apply wind effect to the active block
+        """
+        if self.wind_active and self.active_block:
+            # Calculate wind movement
+            wind_movement = self.wind_direction * WIND_STRENGTH * BWIDTH
+            
+            # Check if the wind movement would cause the block to go outside boundaries
+            # Get the current block boundaries
+            min_x = min(block.x for block in self.active_block.shape)
+            max_x = max(block.x for block in self.active_block.shape)
+            
+            # Check if wind would push block outside the playable area
+            if self.wind_direction > 0:  # Wind blowing right
+                if max_x + wind_movement >= self.resx - BOARD_HEIGHT - BWIDTH:
+                    return  # Don't apply wind if it would push block outside right boundary
+            else:  # Wind blowing left
+                if min_x + wind_movement <= BOARD_HEIGHT:
+                    return  # Don't apply wind if it would push block outside left boundary
+            
+            # Try to move the block with wind
+            self.active_block.backup()
+            self.active_block.move(wind_movement, 0)
+            
+            # Check if wind movement causes collision with other blocks
+            if self.block_colides():
+                # Restore if collision detected
+                self.active_block.restore()
+            else:
+                # Wind effect applied successfully
+                self.active_block._update()
+                
+    def apply_earthquake_effect(self):
+        """
+        Apply earthquake effect to the active block
+        """
+        if self.earthquake_active and self.active_block and self.active_block.rotate_en:
+            # Apply random rotation
+            self.active_block.backup()
+            self.active_block.diff_rotation = EARTHQUAKE_ROTATION
+            self.active_block._update()
+            
+            # Check if rotation causes collision
+            earthquake_collision = self.active_block.check_collision([self.board_left, self.board_right, self.board_down]) or self.block_colides()
+            
+            if earthquake_collision:
+                # Restore if collision detected
+                self.active_block.restore()
+                
+    def update_environmental_effects(self):
+        """
+        Update environmental effects - randomly activate wind and earthquake
+        """
+        # Update wind effect
+        if random.random() < WIND_CHANCE:
+            self.wind_active = True
+            self.wind_direction = random.choice([-1, 1])  # Random direction
+        else:
+            self.wind_active = False
+            
+        # Update earthquake effect
+        if random.random() < EARTHQUAKE_CHANCE:
+            self.earthquake_active = True
+        else:
+            self.earthquake_active = False
+            
+    def check_block_boundaries(self):
+        """
+        Check if the active block is within proper boundaries and fix if needed
+        """
+        if not self.active_block:
+            return
+            
+        # Get the current block boundaries
+        min_x = min(block.x for block in self.active_block.shape)
+        max_x = max(block.x for block in self.active_block.shape)
+        
+        # Check if block is stuck in left wall
+        if min_x < BOARD_HEIGHT:
+            # Move block to safe position
+            correction = BOARD_HEIGHT - min_x
+            self.active_block.backup()
+            self.active_block.move(correction, 0)
+            if not self.block_colides():
+                self.active_block._update()
+                self.stuck_block_count += 1
+            else:
+                self.active_block.restore()
+                
+        # Check if block is stuck in right wall
+        elif max_x > self.resx - BOARD_HEIGHT - BWIDTH:
+            # Move block to safe position
+            correction = (self.resx - BOARD_HEIGHT - BWIDTH) - max_x
+            self.active_block.backup()
+            self.active_block.move(correction, 0)
+            if not self.block_colides():
+                self.active_block._update()
+                self.stuck_block_count += 1
+            else:
+                self.active_block.restore()
+                
+    def generate_next_shape(self):
+        """
+        Generate the next shape for preview
+        """
+        data = self.block_data[self.next_shape_index]
+        # Create a preview block positioned in the preview area
+        preview_x = self.resx + 20  # Position to the right of the game board
+        preview_y = BOARD_UP_MARGIN + 100  # Position below the score
+        self.next_shape_block = Block(data[0], preview_x, preview_y, self.screen, data[1], data[2])
+        
+    def get_next_shape_index(self):
+        """
+        Get the next shape index and generate a new one
+        """
+        current_index = self.next_shape_index
+        # Generate new next shape
+        self.next_shape_index = random.randint(0, len(self.block_data)-1)
+        self.generate_next_shape()
+        return current_index
  
     def run(self):
         # Initialize the game (pygame, fonts)
         pygame.init()
         pygame.font.init()
         self.myfont = pygame.font.SysFont(pygame.font.get_default_font(), FONT_SIZE)
-        self.screen = pygame.display.set_mode((self.resx,self.resy))
+        self.screen = pygame.display.set_mode((self.total_resx,self.resy))
         pygame.display.set_caption("Tetris")
         # Setup the time to fire the move event every given time
         self.set_move_timer()
+        # Setup the environment effects timer
+        self.set_environment_timer()
         # Control variables for the game. The done signal is used 
         # to control the main loop (it is set by the quit action), the game_over signal
         # is set by the game logic and it is also used for the detection of "game over" drawing.
@@ -368,6 +547,9 @@ class Tetris(object):
         self.new_block = True
         # Print the initial score
         self.print_status_line()
+        
+        # Initialize the next shape preview
+        self.generate_next_shape()
         while not(self.done) and not(self.game_over):
             # Get the block and run the game logic
             self.get_block()
@@ -384,7 +566,22 @@ class Tetris(object):
         """
         Print the current state line
         """
-        string = ["SCORE: {0}   SPEED: {1}x".format(self.score,self.speed)]
+        status_string = "SCORE: {0}   SPEED: {1}x".format(self.score,self.speed)
+        
+        # Add environmental effects status
+        effects = []
+        if self.wind_active:
+            direction = "→" if self.wind_direction > 0 else "←"
+            effects.append("WIND " + direction)
+        if self.earthquake_active:
+            effects.append("EARTHQUAKE!")
+            
+        if effects:
+            status_string += "   EFFECTS: " + ", ".join(effects)
+            
+
+            
+        string = [status_string]
         self.print_text(string, POINT_MARGIN, POINT_MARGIN)        
 
     def print_game_over(self):
@@ -451,6 +648,13 @@ class Tetris(object):
         # apply the action
         self.active_block.backup()
         self.apply_action()
+        
+        # Apply environmental effects
+        self.apply_wind_effect()
+        self.apply_earthquake_effect()
+        
+        # Check and fix any stuck blocks
+        self.check_block_boundaries()
         # Border logic, check if we colide with down border or any
         # other border. This check also includes the detection with other tetris blocks. 
         down_board  = self.active_block.check_collision([self.board_down])
@@ -547,8 +751,8 @@ class Tetris(object):
         Generate new block into the game if is required.
         """
         if self.new_block:
-            # Get the block and add it into the block list(static for now)
-            tmp = random.randint(0,len(self.block_data)-1)
+            # Use the next shape system
+            tmp = self.get_next_shape_index()
             data = self.block_data[tmp]
             self.active_block = Block(data[0],self.start_x,self.start_y,self.screen,data[1],data[2])
             self.blk_list.append(self.active_block)
@@ -560,15 +764,79 @@ class Tetris(object):
         """
         # Clean the screen, draw the board and draw
         # all tetris blocks
-        self.screen.fill( BLACK)
+        self.screen.fill( DARK_BLUE)  # Dark blue background instead of black
         self.draw_board()
         for blk in self.blk_list:
             blk.draw()
+            
+        # Draw environmental effects visual feedback
+        self.draw_environmental_effects()
+        
+        # Draw next shape preview
+        self.draw_next_shape_preview()
+        
         # Draw the screen buffer
         pygame.display.flip()
+        
+    def draw_environmental_effects(self):
+        """
+        Draw visual feedback for environmental effects
+        """
+        if self.wind_active:
+            # Draw wind arrows on the sides
+            arrow_color = (100, 150, 255)  # Light blue
+            if self.wind_direction > 0:  # Wind blowing right
+                # Draw arrows on the right side
+                for i in range(3):
+                    y_pos = BOARD_UP_MARGIN + 50 + i * 30
+                    pygame.draw.polygon(self.screen, arrow_color, [
+                        (self.resx - 30, y_pos),
+                        (self.resx - 40, y_pos - 5),
+                        (self.resx - 40, y_pos + 5)
+                    ])
+            else:  # Wind blowing left
+                # Draw arrows on the left side
+                for i in range(3):
+                    y_pos = BOARD_UP_MARGIN + 50 + i * 30
+                    pygame.draw.polygon(self.screen, arrow_color, [
+                        (30, y_pos),
+                        (40, y_pos - 5),
+                        (40, y_pos + 5)
+                    ])
+                    
+        if self.earthquake_active:
+            # Draw earthquake effect (shaking screen effect)
+            # This is a simple visual indicator - you could make it more elaborate
+            shake_offset = random.randint(-2, 2)
+            # Draw a subtle border effect
+            pygame.draw.rect(self.screen, (255, 100, 100), 
+                           (shake_offset, shake_offset, self.resx - 2*shake_offset, self.resy - 2*shake_offset), 3)
+            
+    def draw_next_shape_preview(self):
+        """
+        Draw the next shape preview area
+        """
+        if self.next_shape_block:
+            # Draw preview background
+            preview_rect = pygame.Rect(self.resx, 0, self.preview_width, self.resy)
+            pygame.draw.rect(self.screen, (50, 50, 50), preview_rect)  # Dark gray background
+            
+            # Draw preview border
+            pygame.draw.rect(self.screen, WHITE, preview_rect, 2)
+            
+            # Draw "NEXT" label
+            next_text = self.myfont.render("NEXT", True, WHITE)
+            self.screen.blit(next_text, (self.resx + 10, 10))
+            
+            # Draw the next shape
+            self.next_shape_block.draw()
 
 if __name__ == "__main__":
     Tetris(16,30).run()
+
+
+
+
 
 
 
